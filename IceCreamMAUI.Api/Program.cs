@@ -1,3 +1,9 @@
+using IceCreamMAUI.Api.Data;
+using IceCreamMAUI.Api.Endpoints;
+using IceCreamMAUI.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,8 +11,30 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var connectionString = builder.Configuration.GetConnectionString("Icecream");
+builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer(connectionString));
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(jwtOptions =>
+        jwtOptions.TokenValidationParameters = TokenService.GetTokenValidationParameters(builder.Configuration)
+     );
+builder.Services.AddAuthorization();
+
+
+builder.Services.AddTransient<TokenService>()
+                .AddTransient<PasswordService>()
+                .AddTransient<AuthService>()
+                .AddTransient<IcecreamService>();
+
 var app = builder.Build();
 
+#if DEBUG
+MigrateDatabase(app.Services);
+#endif
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -16,29 +44,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseAuthentication();
+app.UseAuthorization();
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.MapEndpoints();
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+static void MigrateDatabase(IServiceProvider sp)
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    var scope = sp.CreateScope();
+    var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+    if (dataContext.Database.GetPendingMigrations().Any())
+        dataContext.Database.Migrate();
 }

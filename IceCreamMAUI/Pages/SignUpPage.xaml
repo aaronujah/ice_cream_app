@@ -2,11 +2,43 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="IceCreamMAUI.Pages.SignUpPage"
-             Title="SignUpPage">
-    <VerticalStackLayout>
-        <Label 
-            Text="Welcome to .NET MAUI!"
-            VerticalOptions="Center" 
-            HorizontalOptions="Center" />
-    </VerticalStackLayout>
+             xmlns:vm="clr-namespace:IceCreamMAUI.ViewModels"
+             Title="SignUp"
+             Shell.FlyoutBehavior="Disabled"
+             x:DataType="vm:AuthViewModel">
+    <Grid>
+        <VerticalStackLayout VerticalOptions="Center"
+                             Padding="20"
+                             Spacing="20">
+            <Image Source="Ice_cream"
+                   HeightRequest="150"
+                   WidthRequest="150"
+                   Aspect="AspectFit"/>
+            <Entry Text="{Binding Name}"
+                   Placeholder="Name"/>
+            <Entry Text="{Binding Email}"
+                   Placeholder="Email"
+                   Keyboard="Email"/>
+            <Entry Text="{Binding Password}"
+                   Placeholder="Password"
+                   IsPassword="True"/>
+            <Editor Text="{Binding Address}"
+                   Placeholder="Address"
+                    MaxLength="150"
+                    AutoSize="TextChanges"/>
+
+            <Label Text="Existing user? Signin"
+                   FontSize="15"
+                   FontAttributes="Bold"
+                   TextColor="DeepPink">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="SigninLabel_Tapped"/>
+                </Label.GestureRecognizers>
+            </Label>
+            <Button Text="Signup" IsEnabled="{Binding CanSignup}"
+                    Command="{Binding SignupCommand}"/>
+            
+        </VerticalStackLayout>
+        <ActivityIndicator IsRunning="{Binding IsBusy}" />
+    </Grid>
 </ContentPage>
